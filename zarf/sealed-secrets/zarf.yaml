@@ -1,0 +1,24 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: sealed-secrets
+  description: "Deploys the base sealed-secrets helm chart"
+components:
+  - name: sealed-secrets
+    required: true
+    # manifests: 
+    #   - name: sealed-secrets-deployments
+    #     namespace: infrastructure
+    #     files:
+    #       - sealed-secrets-key.yaml
+    charts:
+      - name: sealed-secrets
+        releaseName: sealed-secrets
+        url: https://bitnami-labs.github.io/sealed-secrets
+        version: 2.7.4
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - docker.io/bitnami/sealed-secrets-controller:v0.19.5

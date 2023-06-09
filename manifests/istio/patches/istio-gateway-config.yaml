@@ -1,0 +1,33 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: istio-gateway
+  namespace: infrastructure
+spec:
+  values:
+    # global:
+    #   istioNamespace: infrastructure
+    service:
+      # Type of service. Set to "None" to disable the service entirely
+      type: LoadBalancer
+      ports:
+      - name: status-port
+        port: 15021
+        protocol: TCP
+        targetPort: 15021
+      - name: grafana
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+      - name: kibana
+        port: 5601
+        protocol: TCP
+        targetPort: 5601
+      - name: kiali
+        port: 20001
+        protocol: TCP
+        targetPort: 20001
+      - name: zipkin
+        port: 9411
+        protocol: TCP
+        targetPort: 9411

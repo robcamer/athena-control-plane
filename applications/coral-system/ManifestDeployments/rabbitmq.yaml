@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: rabbitmq
+spec:
+  workspace: coral-system
+  manifests: rabbitmq
+  targets:
+    all:
+      clusters: all
+      patches:
+        - rabbitmq-config.yaml

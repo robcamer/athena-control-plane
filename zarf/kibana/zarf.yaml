@@ -1,0 +1,19 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: kibana
+  description: "Deploys the base kibana helm chart"
+components:
+  - name: kibana
+    required: true
+    charts:
+      - name: kibana
+        releaseName: kibana
+        url: https://charts.bitnami.com/bitnami
+        version: 10.2.6
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - bitnami/kibana:8.4.3-debian-11-r1

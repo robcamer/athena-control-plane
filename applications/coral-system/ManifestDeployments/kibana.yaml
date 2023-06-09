@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: kibana
+spec:
+  workspace: coral-system
+  manifests: kibana
+  targets:
+    all:
+      clusters: all
+      patches:
+        - elasticsearch-config.yaml

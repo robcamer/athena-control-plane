@@ -1,0 +1,9 @@
+kind: ManifestDeployment
+metadata:
+  name: azure-sql-edge
+spec:
+  workspace: coral-system
+  manifests: azure-sql-edge
+  targets:
+    all:
+      clusters: all

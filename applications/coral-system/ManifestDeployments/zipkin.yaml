@@ -1,0 +1,9 @@
+kind: ManifestDeployment
+metadata:
+  name: zipkin
+spec:
+  workspace: coral-system
+  manifests: zipkin
+  targets:
+    all:
+      clusters: all

@@ -1,0 +1,9 @@
+kind: ManifestDeployment
+metadata:
+  name: app-team
+spec:
+  workspace: coral-system
+  manifests: app-team
+  targets:
+    all:
+      clusters: all

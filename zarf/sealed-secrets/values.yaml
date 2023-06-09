@@ -1,0 +1,10 @@
+secretName: sealed-secrets-key
+metrics:
+  serviceMonitor:
+    enabled: true
+    labels:
+      prometheus: add-prometheus-target
+  dashboards:
+    create: true
+    labels:
+      grafana_dashboard: "1"

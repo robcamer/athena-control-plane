@@ -1,0 +1,20 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: kiali
+  description: "Deploys the base kiali helm chart"
+components:
+  - name: kiali
+    required: true
+    charts:
+      - name: kiali-operator
+        releaseName: kiali
+        url: https://kiali.org/helm-charts
+        version: v1.58
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - quay.io/kiali/kiali:v1.58.0
+      - quay.io/kiali/kiali-operator:v1.58.0

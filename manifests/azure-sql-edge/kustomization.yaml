@@ -1,0 +1,15 @@
+---
+# Source: temp/templates/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: infrastructure
+commonLabels:
+  app.kubernetes.io/instance: coral-system
+  app.kubernetes.io/part-of: coral
+  app.kubernetes.io/version: v0.0.1
+resources:
+  - release.yaml
+  - azure-sql-edge-secrets.enc.yaml
+  - dashboard.yaml
+  - datasource.enc.yaml
+  # - pvc.yaml

@@ -1,0 +1,15 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: app-team
+  description: "Deploys the app team resources"
+components:
+  - name: app-team-deployments
+    required: true
+    manifests: 
+      - name: app-team-deployments
+        namespace: infrastructure
+        files:       
+          - dashboard-netobs-stats.yaml
+          - dashboard-app-observability.yaml

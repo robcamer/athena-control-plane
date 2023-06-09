@@ -1,0 +1,20 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: zipkin
+  description: "Deploys the base zipkin helm chart"
+components:
+  - name: zipkin
+    required: true
+    charts:
+      - name: zipkin
+        releaseName: zipkin
+        url: https://ygqygq2.github.io/charts
+        version: 2.1.1
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - docker.io/openzipkin/zipkin:2.23
+      - docker.io/openzipkin/zipkin-dependencies:2.6.4

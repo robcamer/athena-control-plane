@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.sqldb.fullnameOverride }}
+  labels:
+    {{- include "sqldb.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sqldb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "sqldb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.sqldb.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.sqldb.imagePullSecrets.name }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: sqldata
+          persistentVolumeClaim:
+            claimName: {{ .Values.sqldb.fullnameOverride }}-pvc
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.sqldb.image.repository }}:{{ .Values.sqldb.image.tag }}"
+          imagePullPolicy: {{ .Values.sqldb.image.pullPolicy }}
+          resources:
+            requests:
+              memory: {{ .Values.sqldb.resources.requests.memory }}
+              cpu: {{ .Values.sqldb.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.sqldb.resources.limits.memory }}
+              cpu: {{ .Values.sqldb.resources.limits.cpu }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.sqldb.service.port }}
+              protocol: TCP
+          env:
+            - name: MSSQL_PID
+              value: {{ .Values.sqldb.database.mssql_pid }}
+            - name: ACCEPT_EULA
+              value: {{ quote .Values.sqldb.database.accept_eula }}
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: azure-sql-edge-secrets
+                  key: sql-password
+            - name: MSSQL_AGENT_ENABLED
+              value: {{ quote .Values.sqldb.database.mssql_agent_enabled }}
+            - name: MSSQL_COLLATION
+              value: {{ .Values.sqldb.database.mssql_collation }}
+            - name: MSSQL_LCID
+              value: {{ quote .Values.sqldb.database.mssql_lcid }}
+          volumeMounts:
+            - name: sqldata
+              mountPath: /var/opt/mssql
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

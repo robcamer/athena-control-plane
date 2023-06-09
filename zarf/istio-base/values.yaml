@@ -1,0 +1,4 @@
+---
+# Source: temp/templates/values.yaml
+global:
+  istioNamespace: 'infrastructure'

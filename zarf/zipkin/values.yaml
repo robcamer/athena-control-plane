@@ -1,0 +1,10 @@
+---
+# Source: temp/templates/values.yaml
+commonAnnotations:
+  sidecar.istio.io/inject: "false"
+commonLabels:
+  app: zipkin
+dependencies:
+  enabled: false
+elasticsearch:
+  enabled: false

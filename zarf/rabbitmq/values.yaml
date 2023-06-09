@@ -1,0 +1,16 @@
+---
+# Source: temp/templates/values.yaml
+auth:
+  existingPasswordSecret: rabbitmq
+  existingErlangSecret: rabbitmq
+commonLabels:
+  prometheus: add-prometheus-target
+image:
+  registry: docker.io
+  repository: bitnami/rabbitmq
+  tag: 3.11.9-debian-11-r1
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    honorLabels: true

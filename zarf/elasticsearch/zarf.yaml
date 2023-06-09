@@ -1,0 +1,21 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: elasticsearch
+  description: "Deploys the base elasticsearch helm chart"
+components:
+  - name: elasticsearch
+    required: true
+    charts:
+      - name: elasticsearch
+        releaseName: elasticsearch
+        url: https://charts.bitnami.com/bitnami
+        version: 19.5.0
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - bitnami/elasticsearch:8.5.0-debian-11-r0
+      - bitnami/elasticsearch-exporter:1.5.0-debian-11-r34
+      - bitnami/bitnami-shell:11-debian-11-r47

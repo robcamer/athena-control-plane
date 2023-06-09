@@ -1,0 +1,177 @@
+default:
+  image: davesee/crew-athena:latest
+
+stages:
+  - build
+
+########
+# Usage:
+# * Create an Access Token under the group level under group Setting -> Access Tokens
+# * Next, use the token value as a ACCESS_TOKEN variable under group Setting -> CI/CD -> Variables
+# * Note: Only group Owner will have permission to perform this action
+#
+# * Create ACCESS_TOKEN to store the Group Access Token secret
+#   * Name: ACCESS_TOKEN
+#   * Value: Token password from the Access Token created above
+########
+
+variables:
+  CORAL_LOG_FILE: coral.log
+  GITLAB_TOKEN: $ACCESS_TOKEN
+  GITLAB_HOST: $CI_SERVER_HOST
+  GITOPS_REPO: $GITOPS_REPO
+  GITOPS_REPO_OWNER: $CI_PROJECT_NAMESPACE
+  RUN_ZARF: 'false'
+
+build-seed:
+  stage: build
+  services:
+    - docker:dind
+  tags:
+    - efr
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  artifacts:
+    name: "coral-log-${CI_JOB_STAGE}-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - ${CORAL_LOG_FILE}
+  script:
+    - echo "===== Set env defaults ====="
+    - |-
+      [[ -z $DEPLOY_INFRA ]] && export DEPLOY_INFRA=true
+      [[ -z $AZURE_CLOUD ]] && export AZURE_CLOUD=AzureCloud
+      [[ -z $SOPS_PUBLIC_KEY_SECRET_NAME ]] && export SOPS_PUBLIC_KEY_SECRET_NAME=sops-public-key
+      [[ -z $SOPS_PRIVATE_KEY_SECRET_NAME ]] && export SOPS_PRIVATE_KEY_SECRET_NAME=sops-private-key
+      [[ -z $SS_PUBLIC_KEY_SECRET_NAME ]] && export SS_PUBLIC_KEY_SECRET_NAME=ss-public-key
+      [[ -z $SS_PRIVATE_KEY_SECRET_NAME ]] && export SS_PRIVATE_KEY_SECRET_NAME=ss-private-key
+
+    - echo "===== Configure Git ====="
+    - |-
+      git config --global user.name gitlab-actions
+      git config --global user.email gitlab-actions@gitlab.com
+      git config --global credential.helper store
+      git config --global push.default simple
+      git config --global safe.directory '*'
+
+    - echo "===== Clone Control Plane Repo ====="
+    - git clone https://git:${ACCESS_TOKEN}@${GITLAB_HOST}/${CI_PROJECT_PATH}.git controlplane
+
+    - echo "===== Clone Cluster GitOps repo ====="
+    - git clone "https://git:${ACCESS_TOKEN}@${GITLAB_HOST}/${CI_PROJECT_NAMESPACE}/${GITOPS_REPO}.git" gitops
+
+    - echo "===== Set Azure Cloud with CLI ====="
+    - az cloud set --name $AZURE_CLOUD
+
+    - echo "===== Login to Azure Cloud with CLI ====="
+    - az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
+
+    - echo "===== Deploy and Configure Infrastructure ====="
+    - |-
+      cd controlplane
+      bash ./infrastructure/deploy.sh --gitlab || exit 1
+      cd ..
+
+    - echo "===== Set env infra vars ====="
+    - |-
+      cd controlplane
+      if [[ -f infrastructure/state ]]; then
+        export KEYVAULT_NAME=$(awk '/KEYVAULT_NAME/  { print $2 }' infrastructure/state)
+        export AKS_NAME=$(awk '/AKS_NAME/  { print $2 }' infrastructure/state)
+        export RESOURCE_GROUP_NAME=$(awk '/RESOURCE_GROUP_NAME/  { print $2 }' infrastructure/state)
+      else
+        export KEYVAULT_NAME=$AKV_NAME
+      fi
+      cd ..
+
+    - echo "===== Generate encryption keys ====="
+    - bash ./controlplane/scripts/pipeline/generateEncryptionKeys.sh || exit 1
+
+    - echo "===== Generate Secrets ====="
+    - bash ./controlplane/scripts/pipeline/generateSecrets.sh || exit 1
+
+    - echo "===== Deploy encryption keys ====="
+    - bash ./controlplane/scripts/pipeline/deployEncryptionKeys.sh || exit 1
+
+    - echo "===== Update template references ====="
+    - |-
+      cd controlplane/
+      sed -i -- "s|<PIPELINE-REPLACES-REPO>|https://${CI_SERVER_HOST}/${CI_PROJECT_PATH}|g" templates/*.yaml
+      if [ -n "$(git status templates --porcelain)" ]; then
+        git pull
+        git add templates
+        [ -n "$(git diff-index --cached HEAD)" ] && git commit -m "[ci skip] Updated template references $SHA"
+        git push origin
+      fi
+      cd ..
+
+    - echo "===== Coral - Update Assignments ====="
+    - coral assign ./controlplane --verbose
+
+    - echo "===== Commit Assignments ====="
+    - |-
+      cd controlplane/
+      if [ -n "$(git status assignments --porcelain)" ]; then
+        git pull
+        git add assignments
+        [ -n "$(git diff-index --cached HEAD)" ] && git commit -m "[ci skip] Updated cluster assignments $SHA"
+        git push origin
+      else
+        echo "No new assignments"
+      fi
+      SHA=$(git rev-parse HEAD)
+      cd ..
+
+    - echo "===== Coral - Render templates ====="
+    - coral render ./controlplane ./gitops --verbose
+
+    - echo "===== Coral - Update GitOps repo ====="
+    - coral apply ./controlplane ./gitops --verbose
+
+    - echo "===== Create the flux gotk files ====="
+    - bash ./controlplane/scripts/pipeline/createFluxGotk.sh || exit 1
+
+    - echo "===== Update patches with patchesStrategicMerge ====="
+    - |-
+      cd gitops
+      grep -rli 'patches:' * --exclude-dir=flux-system | xargs -i@ sed -i 's/patches:/patchesStrategicMerge:/g' @
+      cd ..
+
+    - echo "===== Add SOPS Provider ====="
+    - |-
+      gotk_yamls=($(find gitops/clusters -iwholename *flux-system/kustomization.yaml))
+      for gotk_yamls in "${gotk_yamls[@]}"
+      do
+        cp controlplane/scripts/templates/gotk-kustomization.yaml "$gotk_yamls"
+      done
+
+    - echo "===== Update GitOps with SOPS Encrypted Secrets ====="
+    - |-
+      bash ./controlplane/scripts/pipeline/zarfGetApps.sh
+      bash ./controlplane/scripts/pipeline/populateSecrets.sh
+      bash ./controlplane/scripts/pipeline/encryptSecrets.sh
+      cd gitops
+      if [ -n "$(git status --porcelain)" ]; then
+        git pull
+        git add .
+        git commit -m "Update from control plane commit $SHA"
+        git push origin main
+      fi
+      cd ..
+
+    - echo "===== Process Zarf Packages with SS Encrypted Secrets ====="
+    - |-
+      bash ./controlplane/scripts/pipeline/encryptSecrets.sh ss
+      bash ./controlplane/scripts/pipeline/zarfPackageUpload.sh
+      cd controlplane/
+      if [ -n "$(git status --porcelain)" ]; then
+        git pull
+        git add zarf
+        git commit -m "[ci skip] Adds Zarf Sealed Secrets $SHA"
+        git push origin
+      fi
+      cd ..
+
+    - echo "===== Bootstrap Flux ====="
+    - |-
+      bash ./controlplane/scripts/pipeline/fluxBootStrap.sh --gitlab

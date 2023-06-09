@@ -1,0 +1,15 @@
+---
+# Source: temp/templates/values.yaml
+cr:
+  create: true
+  namespace: 'infrastructure'
+  spec:
+    auth:
+      strategy: anonymous
+    external_services:
+      istio:
+        root_namespace: 'infrastructure'
+      prometheus:
+        url: http://kube-prometheus-stack-prometheus.infrastructure.svc.cluster.local
+metrics:
+  enabled: true

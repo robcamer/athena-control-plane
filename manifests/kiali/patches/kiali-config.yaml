@@ -1,0 +1,20 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: kiali
+  namespace: infrastructure
+spec:
+  values:
+    metrics:
+      enabled: true
+    cr:
+      create: true
+      namespace: "infrastructure"
+      spec:
+        auth:
+          strategy: "anonymous"
+        external_services:
+          istio:
+            root_namespace: "infrastructure"
+          prometheus:
+            url: "http://prometheus-server.infrastructure.svc.cluster.local"

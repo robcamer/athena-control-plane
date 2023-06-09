@@ -1,0 +1,34 @@
+# https://github.com/kubernetes-sigs/azurefile-csi-driver/blob/master/deploy/example/e2e_usage.md#option2-pvpvc
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{name}}-pv
+  namespace: {{coral.workspace}}-{{coral.app}}
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: azurefile-csi
+  csi:
+    driver: file.csi.azure.com
+    readOnly: false
+    volumeHandle: {{coral.workspace}}-{{coral.app}} # make sure this volumeid is unique in the cluster
+    volumeAttributes:
+      resourceGroup: <storage-rg-name> 
+      storageAccount: <storage-account-name> 
+      shareName: <file-share-name> 
+    nodeStageSecretRef:
+      name: {{name}}-secrets
+      namespace: {{coral.workspace}}-{{coral.app}}
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=0
+    - gid=0
+    - mfsymlinks
+    - cache=strict
+    - nosharesock
+    - nobrl

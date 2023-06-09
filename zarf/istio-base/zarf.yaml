@@ -1,0 +1,28 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: istio-base
+  description: "Deploys the base istio-base helm chart"
+components:
+  - name: istio-base
+    required: true
+    manifests: 
+      - name: istio-base-deployments
+        namespace: infrastructure
+        files:
+          - cacerts.enc.yaml
+          - gateway-cert.enc.yaml
+          - istio-dataplane-servicemonitor.yaml
+          - istio-controlplane-servicemonitor.yaml
+    charts:
+      - name: base
+        releaseName: istio-base
+        url: https://istio-release.storage.googleapis.com/charts
+        version: 1.15.3
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - registry.k8s.io/etcd:3.5.4-0
+      - istio/proxyv2:1.15.3

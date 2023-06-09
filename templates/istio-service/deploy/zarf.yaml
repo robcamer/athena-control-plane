@@ -1,0 +1,33 @@
+kind: ZarfPackageConfig
+metadata:
+  name: {{name}}-zarf
+  description: "{{coral.app}} app Zarf package"
+
+components:
+  - name: {{name}}-secret
+    required: true
+    manifests: 
+      - name: {{name}}-secret
+        namespace: {{coral.workspace}}-{{coral.app}}
+        files:       
+          - {{name}}-secrets.enc.yaml
+  - name: {{name}}-zarf
+    required: true
+    manifests:
+      - name: {{name}}-zarf
+        namespace: {{coral.workspace}}-{{coral.app}}
+        files:
+          - default-pv.yaml
+          - default-pvc.yaml
+          - deployment.yaml
+          - config.yaml
+          {{^canary}}
+          - namespace.yaml
+          - service.yaml
+          {{/canary}}
+          {{#canary}}
+          - destination-rule.yaml
+          - virtual-service.yaml
+          {{/canary}}
+    images:
+      - {{image}}

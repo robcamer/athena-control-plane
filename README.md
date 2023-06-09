@@ -1,328 +1,164 @@
-<!--=========================README TEMPLATE INSTRUCTIONS=============================
-======================================================================================
+# Introduction
 
-- THIS README TEMPLATE LARGELY CONSISTS OF COMMENTED OUT TEXT. THIS UNRENDERED TEXT IS MEANT TO BE LEFT IN AS A GUIDE 
-  THROUGHOUT THE REPOSITORY'S LIFE WHILE END USERS ONLY SEE THE RENDERED PAGE CONTENT. 
-- Any italicized text rendered in the initial template is intended to be replaced IMMEDIATELY upon repository creation.
+The Mission Platform Ops Athena Control Plane Seed enhances the base [Coral](https://github.com/microsoft/coral) control plane seed by:
 
-- This template is default but not mandatory. It was designed to compensate for typical gaps in Microsoft READMEs 
-  that slow the pace of work. You may delete it if you have a fully populated README to replace it with.
+- Automating the deployment of Azure resources used for testing.
+- Integrating an Istio service mesh and dial-tone services.
+- Providing Azure Key Vault (AKV) integrated secrets management.
+- Enabling packaging for air-gapped deployments with Zarf.
 
-- Most README sections below are commented out as they are not known early in a repository's life. Others are commented 
-  out as they do not apply to every repository. If a section will be appropriate later but not known now, consider 
-  leaving it in commented out and adding an issue as a reminder.
-- There are additional optional README sections in the external instruction link below. These include; "citation",  
-  "built with", "acknowledgments", "folder structure", etc.
-- You can easily find the places to add content that will be rendered to the end user by searching 
-within the file for "TODO".
+This seed was originally developed to support the deployment of Crew Athena's Network Observability solution.  [Example Deployment - Network Observability Solution](./docs/tutorials/no_tutorial.md) is provided to deploy that solution with this seed and serves as an in-depth tutorial for the capability.
 
+Interested Microsoft parties can join the project on [Azure DevOps](https://dev.azure.com/CSECodeHub/CSE%20Gov%20-%20Mission%20Capabilities).
 
+## Coral
 
-- ADDITIONAL EXTERNAL TEMPLATE INSTRUCTIONS:
-  -  https://aka.ms/StartRight/README-Template/Instructions
+The Mission Platform Ops Athena Control Plane Seed is built on the [Coral](https://github.com/microsoft/coral) platform and largely follows the patterns established there.  Before deploying a solution with this seed, it is important to understand the basic concepts, roles, and deployment methodologies of Coral.  A [Documentation Hub](https://github.com/microsoft/coral/blob/main/docs/documentation-hub.md) is provided within the Coral repo.  It may be helpful to deploy the base Coral platform and one of the sample applications, starting with [Setting up the Coral Platform](https://github.com/microsoft/coral/blob/main/docs/platform-setup.md), before deploying a solution with this seed.
 
-======================================================================================
-====================================================================================-->
+**Note: It is not required to deploy the base Coral platform to use this seed or to deploy the example Network Observability solution.**
 
+## Overview
 
-<!---------------------[  Description  ]------------------<recommended> section below------------------>
+Control-planes built with this seed utilize CI/CD pipelines to deploy and manage their required infrastructure and services.  Pipeline files are available for both [GitHub](./.github/workflows/transform.yaml) Workflows and [GitLab](./.gitlab-ci.yml) Pipelines.  When commits are made to the `main` branch of the control-plane, directly or via a Pull Request, the pipelines execute the following flow.
 
-# athena-control-plane
+```mermaid
+flowchart TD
+    A[Start] --> B{Infra Exists}
+    B ---|No|R(Deploy Infra <BR> AKS,AKV,ACR <BR> Storage)
+    B ---|Yes|S(Env Var Provided <BR> AKS,AKV,ACR <BR> Storage)
+    R --> Z(Infra Present)
+    S --> Z
+    Z -->E(Generate Secrets <BR> Istio: cacert, gateway cert <BR> SQL: db-pw <BR> RabbitMQ: rabbit-pw <BR> Save values to AKV <BR>Secret yaml files with `name` to CP):::blue
+    
+    subgraph GenerateEncryptionKeys
+    a1(SOPS age keygen <BR> public,private keys):::orange
+    a2(Sealed Secrets <BR> openssl cert,.crt,.key):::green
+    end
 
-<!-- 
-INSTRUCTIONS:
-- Write description paragraph(s) that can stand alone. Remember 1st paragraph may be consumed by aggregators to improve 
-  search experience.
-- You description should allow any reader to figure out:
-    1. What it does?
-    2. Why was it was created?
-    3. Who created?
-    4. What is it's maturity?
-    5. What is the larger context?
-- Write for a reasonable person with zero context regarding your product, org, and team. The person may be evaluating if 
-this is something they can use.
+    subgraph Coral Pipline Workflow with secrets
+    b1(AKS-AzureK8Service <BR> AKV-Azure Keyvault <BR> ACR-Azure Container Registry <BR> CP-Control plane <BR> SOPS-Secrets Operation <BR> SS-Sealed Secrets <BR> Storage- Azure Storage Account)
+    end
 
-How to Evaluate & Examples: 
-  - https://aka.ms/StartRight/README-Template/Instructions#description
--->
+    Z --> GenerateEncryptionKeys
+    GenerateEncryptionKeys --> G(Deploy Decryption Keys <BR> Add SOPS public secret in AKS prior to bootstrap for <BR>  decryption of infra secrets <BR> k8s create from AKV SOPS age public key):::orange
+    E --> H(Populate Secrets <BR> Get AKV secret `value` for pipline <BR> create_akv_secrets_map ):::blue
+    E --> F(CoralAppInit <BR> Generate app secret files with `value`<BR> Reg.SQL, RabbitMQ pwd <BR> Save values to AKV <BR>Secret yaml files with `name` to CP/template):::blue
+    F --> H
+    G --> I(Add SOPS Provider <BR> Add SOPS patch to flux-system <BR> kustomization):::orange
+    E --> |Render yaml to Gitops|J(Coral Processing <BR> Coral assign,render,apply <BR> Include secret yuaml with placeholder `name` <BR> GitOps Update):::blue
+    J --> K(GitOps App for Zarf <BR> Copy app rendered mustache yaml to CP/zarf folder):::green
+    K --> L(Get Updated Secrets <BR> Replace secret`name` refs with base64 AKV <BR> `values` from akv_secrets_map for GitOps and cp/ <BR> Zarf Folders <BR> Create file_secret_map):::blue
+    H --> L
+    I --> N(SOPS Encrypt <BR> Get SOPS Public Key <BR> sops-encrypt GitOps secret files <BR> Write Encrypted yaml files <BR> commit to GitOps):::orange
+    M --> O(Zarf Package and upload <BR> zarf package create & az storage blob upload):::green
+    N --> P(BootStrap and Reconcile Flux <BR> Installs infra/apps with SOPs encrypted secrets):::orange
+    P -->Q(END):::red
+    L --> M(Sealed Secret Encrypt <BR>  Get SS Public cert and write to files <BR> kubeseal CP/Zarf files <BR> Write encrypted yaml file <BR>  commit to CP):::green
+    L --> N
+    O --> Q
+   
 
-A cloud native software factory created by Crew Athena inspired by several DOD engagements as well as Platform One / Big Bang that leverages ISE coral for deployment and commercial-based container manifests for industry portability.
-
------------------------------------------------------------------
-<!-----------------------[  License  ]----------------------<optional> section below--------------------->
-
-<!-- 
-## License 
---> 
-
-<!-- 
-INSTRUCTIONS:
-- Licensing is mostly irrelevant within the company for purely internal code. Use this section to prevent potential 
-  confusion around:
-  - Open source in internal code repository.
-  - Multiple licensed code in same repository. 
-  - Internal fork of public open source code.
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#license
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-
-<!-----------------------[  Getting Started  ]--------------<recommended> section below------------------>
-## Getting Started
-
-<!-- 
-INSTRUCTIONS:
-  - Write instructions such that any new user can get the project up & running on their machine.
-  - This section has subsections described further down of "Prerequisites", "Installing", and "Deployment". 
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#getting-started
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-*Description of how to install and use the code or content goes here*
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[ Prerequisites  ]-----------------<optional> section below--------------------->
-### Prerequisites
-
-<!--------------------------------------------------------
-INSTRUCTIONS:
-- Describe what things a new user needs to install in order to install and use the repository. 
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#prerequisites
----------------------------------------------------------->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-There are no prerequisites required to run this code or use this repository.
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[  Installing  ]-------------------<optional> section below------------------>
-### Installing
-
-<!--
-INSTRUCTIONS:
-- A step by step series of examples that tell you how to get a development environment and your code running. 
-- Best practice is to include examples that can be copy and pasted directly from the README into a terminal.
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#installing
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-This repository does not hold installable content.
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[  Tests  ]------------------------<optional> section below--------------------->
-<!-- 
-## Tests
- -->
-
-<!--
-INSTRUCTIONS:
-- Explain how to run the tests for this project. You may want to link here from Deployment (CI/CD) or Contributing sections.
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#tests
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-<!--
-
-*Explain what these tests test and why* 
-
+    classDef orange fill:#FF8000
+    classDef blue fill:#0000FF
+    classDef green fill:#008000
+    classDef red fill:#ff0000
 ```
-Give an example
-``` 
 
--->
-<!------====-- CONTENT GOES ABOVE ------->
+### Repo Organization
 
+- `.github/workflows` - Defines a GitHub workflow that transforms Coral entities into the associated cluster GitOps repo YAML to be processed by Flux.
+- `applications`
+  - `<workspace-name>`
+    - `ApplicationRegistrations` - Defines the `ApplicationRegistrations` for a given workspace ([sample](https://github.com/microsoft/coral/blob/main/docs/samples/ApplicationRegistration.yaml)).
+    - `ManifestDeployments` - Defines the `ManifestDeployments` (dial-tone services) for a given workspace.
+- `assignments` - Holds the application:cluster assignments after Coral processes the repo.
+- `clusters` - Defines the `Clusters` in your platform ([sample](https://github.com/microsoft/coral/blob/main/docs/samples/Cluster.yaml)).
+- `docs` - Contains documentation related to the design, development, and deployment of the solution.
+- `infrastructure` - Contains the deployment script for creating infrastructure, along with a state file.
+- `manifests` - Holds Kubernetes YAML for use with `ManifestDeployments`.
+- `scripts` - Contains scripts used by the CI/CD pipelines.
+- `templates` - Defines the available `ApplicationTemplates` in your platform ([sample](https://github.com/microsoft/coral/blob/main/docs/samples/ApplicationTemplate.yaml)).
+- `workspaces` - Defines the `Workspaces` in your platform ([sample](https://github.com/microsoft/coral/blob/main/docs/samples/Workspace.yaml)).
+- `zarf` - Artifacts required to package the solution for air-gapped deployments with [Zarf](https://zarf.dev).
+- `.gitlab-ci.yml` - Defines a GitLab Pipeline that transforms Coral entities into the associated cluster GitOps repo YAML to be processed by Flux.
 
-<!-----------------------[  Deployment (CI/CD)  ]-----------<optional> section below--------------------->
-### Deployment (CI/CD)
+### Azure Infrastructure
 
-<!-- 
-INSTRUCTIONS:
-- Describe how to deploy if applicable. Deployment includes website deployment, packages, or artifacts.
-- Avoid potential new contributor frustrations by making it easy to know about all compliance and continuous integration 
-    that will be run before pull request approval.
-- NOTE: Setting up an Azure DevOps pipeline gets you all 1ES compliance and build tooling such as component governance. 
-  - More info: https://aka.ms/StartRight/README-Template/integrate-ado
+The following Azure resources may be deployed automatically by the CI/CD pipeline(s) using a Service Principal or manually to support testing solutions that use this seed.  The `DEPLOY_INFRA` secret/variables may be set to `false` to skip the deployment of these resources.  The names of any resources not created automatically by the pipelines must be provided as secrets/variables to the CI/CD pipeline ([CI/CD Pipeline Secrets and Variables](./docs/learn_more/secrets_variables.md)).
 
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#deployment-and-continuous-integration
--->
+- [Azure Service Principal](https://learn.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals)
+- [Azure Resource Group](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-cli)
+- [Azure Key Vault](https://learn.microsoft.com/en-us/azure/key-vault/general/overview)
+- [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-intro)
+- [Azure Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/intro-kubernetes)
+- [Storage Account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview)
 
-<!---- [TODO]  CONTENT GOES BELOW ------->
-_At this time, the repository does not use continuous integration or produce a website, artifact, or anything deployed._
-<!------====-- CONTENT GOES ABOVE ------->
+### Dial Tone Services
 
+The Mission Platform Ops Athena Control Plane Seed deploys the services listed below to support centralized logging, observability, monitoring, and a service mesh.  Each component is implemented as a [Flux HelmRelease](https://fluxcd.io/flux/components/helm/helmreleases/) and values are applied via [Coral Patches](https://github.com/microsoft/coral/blob/main/docs/platform-patch-manifest.md).
 
-<!-----------------------[  Versioning and Changelog  ]-----<optional> section below--------------------->
+- [Fluentbit](https://github.com/fluent/fluent-bit) - Log Collection and Aggregation
+- [Elasticsearch](https://github.com/elastic/elasticsearch) - Log Storage and Search
+- [Kibana](https://github.com/elastic/kibana) - Log Visualizations
+- [Istio](https://github.com/istio/istio) - Service Mesh and Distributed Tracing Metrics
+- [Prometheus](https://github.com/prometheus/prometheus) - Metric Collection and Persistence
+- [Grafana](https://github.com/grafana/grafana) - Metric Visualization and Dashboards
+- [Zipkin](https://github.com/openzipkin/zipkin) - Distributed Trace Monitoring and Visualization
 
-<!-- ### Versioning and Changelog -->
+For more information on why and how these dial-tone services are implemented in the Network Observability solution, please refer to the [Centralized Logging](./docs/design-decisions/centralized-logging.md), [Service Mesh](./docs/design-decisions/istio-service-mesh.md), and [Observability and Monitoring](./docs/design-decisions/observability-monitoring.md) docs.
 
-<!-- 
-INSTRUCTIONS:
-- If there is any information on a changelog, history, versioning style, roadmap or any related content tied to the 
-  history and/or future of your project, this is a section for it.
+## Tutorials
 
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#versioning-and-changelog
--->
+- [Example Deployment - Network Observability Solution](./docs/tutorials/no_tutorial.md)
+- [Example Deployment - Coral App Seed](./docs/tutorials/coral_sample.md)
+- [Adding or Removing Dial-Tone Services](./docs/tutorials/adding_dialtone_services.md)
 
-<!---- [TODO]  CONTENT GOES BELOW ------->
-<!-- We use [SemVer](https://aka.ms/StartRight/README-Template/semver) for versioning. -->
-<!------====-- CONTENT GOES ABOVE ------->
+## Learn More
 
+- [CI/CD Pipeline Secrets and Variables](./docs/learn_more/secrets_variables.md)
+- [Secrets Management](./docs/design-decisions/secret-management.md)
+- [Certificate Management](./docs/design-decisions/certificate-management.md)
+- [AKS Storage](./docs/design-decisions/storage-azure-fileshare.md)
+- [RKE Deployment and Storage](./docs/rke/README.md)
+- [ASE Deployment and Storage](./docs/ase/README.md)
+- [Service Specific Dashboard Configuration for Grafana]((./docs/design-decisions/service-specific-dashboard-configuration.md))
+- [Zarf](./docs/design-decisions/zarf-package-upload.md)
 
------------------------------------------------
+## Contributors ✨
 
-<!-----------------------[  Access  ]-----------------------<recommended> section below------------------>
-## Access
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/robcamer"><img src="https://avatars.githubusercontent.com/u/17609294?v=4" width="100px;" alt=""/><br /><sub><b>Rob Cameron</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/marshallbentley"><img src="https://avatars.githubusercontent.com/u/88256447?v=4" width="100px;" alt=""/><br /><sub><b>Marshall Bentley</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/davesee"><img src="https://avatars.githubusercontent.com/u/68443470?v=4" width="100px;" alt=""/><br /><sub><b>Dave Seepersad</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/sweanan"><img src="https://avatars.githubusercontent.com/sweanan" width="100px;" alt=""/><br><sub><b>
+    Swetha Anand</b></sub></a><br /></td>
+  <tr>
+    <td align="center"><a href="https://github.com/beijiez"><img src="https://avatars.githubusercontent.com/u/98988442?v=4" width="100px;" alt=""/><br /><sub><b>Beijie Zhang</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/malcmiller"><img src="https://avatars.githubusercontent.com/u/58534574?v=4" width="100px;" alt=""/><br /><sub><b>Malcolm Miller</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/lucaswatterson"><img src="https://avatars.githubusercontent.com/u/1297951?v=4" width="100px;" alt=""/><br /><sub><b>Lucas Watterson</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/shahedc"><img src="https://avatars.githubusercontent.com/u/779562?v=4" width="100px;" alt=""/><br /><sub><b>
+    Shahed Chowdhuri</b></sub></a><br /></td>
+  </tr>
+</table>
 
-<!-- 
-INSTRUCTIONS:
-- Please use this section to reduce the all-too-common friction & pain of getting read access and role-based permissions 
-  to repos inside Microsoft. Please cover (a) Gaining a role with read, write, other permissions. (b) sharing a link to 
-  this repository such that people who are not members of the organization can access it.
-- If the repository is set to internalVisibility, you may also want to refer to the "Sharing a Link to this Repository" sub-section 
-of the [README-Template instructions](https://aka.ms/StartRight/README-Template/Instructions#sharing-a-link-to-this-repository) so new GitHub EMU users know to get 1ES-Enterprise-Visibility MyAccess group access and therefore will have read rights to any repo set to internalVisibility.
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#how-to-share-an-accessible-link-to-this-repository
--->
-
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[  Contributing  ]-----------------<recommended> section below------------------>
 ## Contributing
 
-<!--
-INSTRUCTIONS: 
-- Establish expectations and processes for existing & new developers to contribute to the repository.
-  - Describe whether first step should be email, teams message, issue, or direct to pull request.
-  - Express whether fork or branch preferred.
-- CONTRIBUTING content Location:
-  - You can tell users how to contribute in the README directly or link to a separate CONTRIBUTING.md file.
-  - The README sections "Contacts" and "Reuse Expectations" can be seen as subsections to CONTRIBUTING.
-  
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#contributing
--->
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
 
-<!---- [TODO]  CONTENT GOES BELOW ------->
-_This repository prefers outside contributors start forks rather than branches. For pull requests more complicated 
-than typos, it is often best to submit an issue first._
+When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot.  You will only need to do this once across all repos using our CLA.
 
-If you are a new potential collaborator who finds reaching out or contributing to another project awkward, you may find 
-it useful to read these [tips & tricks](https://aka.ms/StartRight/README-Template/innerSource/2021_02_TipsAndTricksForCollaboration) 
-on InnerSource Communication.
-<!------====-- CONTENT GOES ABOVE ------->
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+## Trademarks
 
-<!-----------------------[  Contacts  ]---------------------<recommended> section below------------------>
-<!-- 
-#### Contacts  
--->
-<!--
-INSTRUCTIONS: 
-- To lower friction for new users and contributors, provide a preferred contact(s) and method (email, TEAMS, issue, etc.)
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#contacts
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[  Support & Reuse Expectations  ]-----<recommended> section below-------------->
- 
-### Support & Reuse Expectations
-
- 
-<!-- 
-INSTRUCTIONS:
-- To avoid misalignments use this section to set expectations in regards to current and future state of:
-  - The level of support the owning team provides new users/contributors and 
-  - The owning team's expectations in terms of incoming InnerSource requests and contributions.
-
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#support-and-reuse-expectations
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-
-_The creators of this repository **DO NOT EXPECT REUSE**._
-
-If you do use it, please let us know via an email or 
-leave a note in an issue, so we can best understand the value of this repository.
-<!------====-- CONTENT GOES ABOVE ------->
-
-
-<!-----------------------[  Limitations  ]----------------------<optional> section below----------------->
-
-<!-- 
-### Limitations 
---> 
-
-<!-- 
-INSTRUCTIONS:
-- Use this section to make readers aware of any complications or limitations that they need to be made aware of.
-  - State:
-    - Export restrictions
-    - If telemetry is collected
-    - Dependencies with non-typical license requirements or limitations that need to not be missed. 
-    - trademark limitations
- 
-How to Evaluate & Examples:
-  - https://aka.ms/StartRight/README-Template/Instructions#limitations
--->
-
-<!---- [TODO]  CONTENT GOES BELOW ------->
-
-<!------====-- CONTENT GOES ABOVE ------->
-
---------------------------------------------
-
-
-<!-----------------------[  Links to Platform Policies  ]-------<recommended> section below-------------->
-## How to Accomplish Common User Actions
-<!-- 
-INSTRUCTIONS: 
-- This section links to information useful to any user of this repository new to internal GitHub policies & workflows.
--->
-
- If you have trouble doing something related to this repository, please keep in mind that the following actions require 
- using [GitHub inside Microsoft (GiM) tooling](https://aka.ms/gim/docs) and not the normal GitHub visible user interface!
-- [Switching between EMU GitHub and normal GitHub without logging out and back in constantly](https://aka.ms/StartRight/README-Template/maintainingMultipleAccount)
-- [Creating a repository](aka.ms/startright)
-- [Changing repository visibility](https://aka.ms/StartRight/README-Template/policies/jit) 
-- [Gaining repository permissions, access, and roles](https://aka.ms/StartRight/README-TEmplates/gim/policies/access)
-- [Enabling easy access to your low sensitivity and widely applicable repository by setting it to Internal Visibility and having any FTE who wants to see it join the 1ES Enterprise Visibility MyAccess Group](https://aka.ms/StartRight/README-Template/gim/innersource-access)
-- [Migrating repositories](https://aka.ms/StartRight/README-Template/troubleshoot/migration)
-- [Setting branch protection](https://aka.ms/StartRight/README-Template/gim/policies/branch-protection)
-- [Setting up GitHubActions](https://aka.ms/StartRight/README-Template/policies/actions)
-- [and other actions](https://aka.ms/StartRight/README-Template/gim/policies)
-
-This README started as a template provided as part of the 
-[StartRight](https://aka.ms/gim/docs/startright) tool that is used to create new repositories safely. Feedback on the
-[README template](https://aka.ms/StartRight/README-Template) used in this repository is requested as an issue. 
-
-<!-- version: 2023-04-07 [Do not delete this line, it is used for analytics that drive template improvements] -->
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).  Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.  Any use of third-party trademarks or logos are subject to those third-party's policies.

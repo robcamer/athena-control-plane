@@ -1,0 +1,7 @@
+kind: ApplicationTemplate
+metadata:
+  name: istio-service
+spec:
+  repo: <PIPELINE-REPLACES-REPO>
+  ref: main
+  path: templates/istio-service/template.yaml

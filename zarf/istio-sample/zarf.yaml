@@ -1,0 +1,20 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: istio-hello-world
+  description: "Deploys the istio hello world example"
+components:
+  - name: istio-hello-world
+    required: true
+    manifests: 
+      - name: hello-world
+        namespace: infrastructure
+        files:       
+          - helloworld.yaml
+          - virtual-service.yaml
+          - ubuntu.yaml
+    images:
+      - docker.io/istio/examples-helloworld-v1
+      - docker.io/istio/examples-helloworld-v2
+      - docker.io/ubuntu:jammy

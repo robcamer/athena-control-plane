@@ -1,0 +1,24 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: istio-gateway
+  description: "Deploys the base istio-gateway helm chart"
+components:
+  - name: istio-gateway
+    required: true
+    manifests: 
+      - name: istio-gateway-deployments
+        namespace: infrastructure
+        files:
+          - istio-gateway.yaml
+    charts:
+      - name: gateway
+        releaseName: istio-gateway
+        url: https://istio-release.storage.googleapis.com/charts
+        version: 1.15.3
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - docker.io/istio/pilot:1.15.3

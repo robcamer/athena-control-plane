@@ -1,0 +1,18 @@
+# repository env variable
+AZURE_CREDENTIALS=service_principal_credentials
+
+# Optional variables
+AZURE_CLOUD=AzureUSGovernment
+SOPS_PUBLIC_KEY_SECRET_NAME=sops-public-key
+SOPS_PRIVATE_KEY_SECRET_NAME=sops-private-key
+SS_PUBLIC_KEY_SECRET_NAME=ss-public-key
+SS_PRIVATE_KEY_SECRET_NAME=ss-private-key
+DEPLOY_ENV=dev
+REGION=USGovVirginia
+WORKLOAD_NAME=ntwkobsv
+RESOURCE_GROUP_NAME="Name of the pre-created Resource Group"
+AKS_NAME="Name of the pre-created Azure Kubernetes Service"
+AKV_NAME="Name of the pre-created Azure Key Vault"
+ACR_NAME="Name of the pre-created Azure Container Registry"
+STORAGE_ACCOUNT="Name of the pre-created Storage Account"
+VM_SIZE="Size of aks vms"

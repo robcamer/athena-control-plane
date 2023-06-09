@@ -1,0 +1,38 @@
+### Global Values
+global: {}
+
+replicaCount: 1
+
+podSecurityContext:
+  runAsUser: 1000
+  fsGroup: 1000
+
+pvc:
+  storageClass: local-path
+  storageSize: 10Gi
+
+### Sub Chart Specific Values ###
+# SQL DB
+sqldb:
+  fullnameOverride: "azure-sql-edge"
+  image:
+    repository: "mcr.microsoft.com/azure-sql-edge"
+    tag: "1.0.6"
+    pullPolicy: "IfNotPresent"
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "125m"
+    limits:
+      memory: "10Gi"
+      cpu: "1000m"
+  service:
+    type: ClusterIP
+    port: 1433
+  database:
+    accept_eula: "Y"
+    mssql_agent_enabled: "TRUE"
+    mssql_collation: "SQL_Latin1_General_CP1_CI_AS"
+    mssql_lcid: "1033"
+    mssql_pid: "Developer"
+

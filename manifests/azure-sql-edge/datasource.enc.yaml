@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-azure-sql-edge
+  namespace: infrastructure
+  labels:
+    grafana_datasource: "1"
+data:
+  datasources-azure-sql-edge.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: mssql
+      type: mssql
+      url: azure-sql-edge-service.infrastructure:1433
+      database: master
+      user: sa
+      secureJsonData:
+        password: <<<azure-sql-edge-password>>>
+      isDefault: true

@@ -1,0 +1,23 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: fluent-bit
+  description: "Deploys the base fluent-bit helm chart"
+components:
+  - name: fluent-bit
+    required: true
+    manifests: 
+      - name: fluent-bit-deployments
+        namespace: infrastructure
+        files:
+          - secret.yaml
+    charts:
+      - name: fluent-bit
+        releaseName: fluent-bit
+        url: https://fluent.github.io/helm-charts
+        version: 0.20.9
+        namespace: infrastructure
+    images:
+      - cr.fluentbit.io/fluent/fluent-bit:1.9.9
+      - busybox

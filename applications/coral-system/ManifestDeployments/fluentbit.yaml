@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: fluentbit
+spec:
+  workspace: coral-system
+  manifests: fluentbit
+  targets:
+    all:
+      clusters: all
+      patches:
+        - fluentbit-config.yaml

@@ -1,0 +1,237 @@
+name: Coral Secure Build
+
+########
+# Usage:
+# * Update env.GITOPS_REPO to point to your own Cluster GitOps Repo
+# * Create a GitHub Actions secret:
+#   * Name: GITOPS_PAT
+#   * Value: A Personal Access Token with the `repo` scope
+########
+
+on:
+  workflow_dispatch:
+    inputs:
+      zarf:
+        type: boolean
+        default: false
+        description: "Select to run Zarf package and upload."
+  push:
+    branches: [main]
+
+concurrency: transform
+
+env:
+  AZURE_LOG_ANALYTICS_KEY: ${{ secrets.AZURE_LOG_ANALYTICS_KEY }}
+  AZURE_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_LOG_ANALYTICS_WORKSPACE_ID }}
+  CORAL_LOG_FILE: coral.log
+  GITHUB_TOKEN: ${{ secrets.GITOPS_PAT }}
+  COMMIT_MSG: github.event.head_commit.message
+  GITOPS_REPO: <owner>/<repository> # Pipeline replaces
+  SOPS_PUBLIC_KEY_SECRET_NAME: ${{ secrets.SOPS_PUBLIC_KEY_SECRET_NAME }}
+  SOPS_PRIVATE_KEY_SECRET_NAME: ${{ secrets.SOPS_PRIVATE_KEY_SECRET_NAME }}
+  SS_PUBLIC_KEY_SECRET_NAME: ${{ secrets.SS_PUBLIC_KEY_SECRET_NAME }}
+  SS_PRIVATE_KEY_SECRET_NAME: ${{ secrets.SS_PRIVATE_KEY_SECRET_NAME }}
+
+  # optional vars
+  DEPLOY_INFRA: ${{ secrets.DEPLOY_INFRA }} # defaults to true
+  AZURE_CLOUD: ${{ secrets.AZURE_CLOUD }} # defaults to AzureCloud
+  WORKLOAD_NAME: ${{ secrets.WORKLOAD_NAME }} # defaults to ntwkobsv
+  REGION: ${{ secrets.REGION }} # defaults to eastus
+  DEPLOY_ENV: ${{ secrets.DEPLOY_ENV }} # defaults to dev
+  RESOURCE_GROUP_NAME: ${{ secrets.RESOURCE_GROUP_NAME }} # Is generated if not defined
+  STORAGE_ACCOUNT: ${{ secrets.STORAGE_ACCOUNT }} # Is generated if not defined
+  AKV_NAME: ${{ secrets.AKV_NAME }} # Is generated if not defined
+  ACR_NAME: ${{ secrets.ACR_NAME }} # Is generated if not defined
+  AKS_NAME: ${{ secrets.AKS_NAME }} # Is generated if not defined
+  VM_SIZE: ${{ secrets.VM_SIZE }} # defaults to standard_e2ds_v5
+
+  # Zarf vars for image retrieval if no ACR_NAME present
+  CONTAINER_REGISTRY_URL: ${{ secrets.CONTAINER_REGISTRY_URL }}
+  CONTAINER_REGISTRY_USER: ${{ secrets.CONTAINER_REGISTRY_USER }}
+  CONTAINER_REGISTRY_ACCESS_TOKEN: ${{ secrets.CONTAINER_REGISTRY_ACCESS_TOKEN }}
+
+jobs:
+  transform:
+    # Does not run automatically on any coral cli steps due to race conditions (secrets or image availability)
+    if: >-
+      github.event.head_commit.message != 'Initial commit' && 
+      ! contains(github.event.head_commit.message, 'updates from coral cli step')
+    runs-on: ubuntu-latest
+    container: 
+      image: davesee/crew-athena:latest
+      options: --user root
+    steps:
+      - name: Set ENV defaults
+        shell: bash
+        run: |
+          [[ -z $DEPLOY_INFRA ]] && echo "DEPLOY_INFRA=true" >> $GITHUB_ENV
+          [[ -z $AZURE_CLOUD ]] && echo "AZURE_CLOUD=AzureCloud" >> $GITHUB_ENV
+          [[ -z $SOPS_PUBLIC_KEY_SECRET_NAME ]] && echo "SOPS_PUBLIC_KEY_SECRET_NAME=sops-public-key" >> $GITHUB_ENV
+          [[ -z $SOPS_PRIVATE_KEY_SECRET_NAME ]] && echo "SOPS_PRIVATE_KEY_SECRET_NAME=sops-private-key" >> $GITHUB_ENV
+          [[ -z $SS_PUBLIC_KEY_SECRET_NAME ]] && echo "SS_PUBLIC_KEY_SECRET_NAME=ss-public-key" >> $GITHUB_ENV
+          [[ -z $SS_PRIVATE_KEY_SECRET_NAME ]] && echo "SS_PRIVATE_KEY_SECRET_NAME=ss-private-key" >> $GITHUB_ENV
+          echo "GITOPS_REPO_OWNER=$(echo $GITOPS_REPO  | awk -F "/" '{ print $1 }')" >> $GITHUB_ENV
+          USER_INPUT="${{ github.event.inputs.zarf }}"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          [[ "$COMMIT_MSG" == *"RUN_ZARF"* ]] && COMMIT_INPUT=true || COMMIT_INPUT=false
+          echo "RUN_ZARF=${USER_INPUT:-${COMMIT_INPUT:-"false"}}" >> $GITHUB_ENV
+          echo "SHA=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
+
+      - name: Configure Git
+        run: |
+          git config --global user.name github-actions
+          git config --global user.email github-actions@github.com
+          git config --global credential.helper store
+          mkdir -p ~/.config/git
+          echo "https://git:${{ secrets.GITOPS_PAT }}@github.com/" > ~/.config/git/credentials
+
+      - name: Clone Control Plane Repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          path: "controlplane"
+          token: ${{ secrets.GITOPS_PAT }}
+
+      - name: Login to Azure Cloud with CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          environment: ${{ env.AZURE_CLOUD }}
+
+      - name: Deploy and Configure Infrastructure
+        working-directory: controlplane
+        shell: bash
+        run: bash infrastructure/deploy.sh --github
+
+      - name: Set ENV vars
+        working-directory: controlplane
+        shell: bash
+        run: |
+          if [[ -f infrastructure/state ]]; then
+            [[ -z $KEYVAULT_NAME ]] && echo "KEYVAULT_NAME=$(awk '/KEYVAULT_NAME/  { print $2 }' infrastructure/state)" >> $GITHUB_ENV
+            [[ -z $RESOURCE_GROUP_NAME ]] && echo "RESOURCE_GROUP_NAME=$(awk '/RESOURCE_GROUP_NAME/  { print $2 }' infrastructure/state)" >> $GITHUB_ENV
+            [[ -z $AKS_NAME ]] && echo "AKS_NAME=$(awk '/AKS_NAME/  { print $2 }' infrastructure/state)" >> $GITHUB_ENV
+          fi
+
+      - name: Generate encryption keys
+        working-directory: controlplane
+        shell: bash
+        run: bash ./scripts/pipeline/generateEncryptionKeys.sh
+
+      - name: Generate Secrets
+        working-directory: controlplane
+        shell: bash
+        run: bash ./scripts/pipeline/generateSecrets.sh
+
+      - name: Deploy encryption keys
+        working-directory: controlplane
+        shell: bash
+        run: bash ./scripts/pipeline/deployEncryptionKeys.sh
+
+      - name: Update template references
+        working-directory: controlplane
+        shell: bash
+        run: |
+          sed -i -- "s|<PIPELINE-REPLACES-REPO>|${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}|g" templates/*.yaml
+          if [ -n "$(git status templates --porcelain)" ]; then
+            git pull
+            git add templates
+            [ -n "$(git diff-index --cached HEAD)" ] && git commit -m "[no ci] Updated template references $SHA"
+            git push origin
+          fi
+
+      - name: Clone Cluster GitOps Repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          path: "gitops"
+          token: ${{ secrets.GITOPS_PAT }}
+
+      - name: Coral - Update Assignments
+        run: coral assign ./controlplane --verbose
+
+      - name: Commit Assignments
+        id: commit_assignments
+        working-directory: controlplane
+        shell: bash
+        run: |
+          if [ -n "$(git status assignments --porcelain)" ]; then
+            git pull
+            git add assignments
+            [ -n "$(git diff-index --cached HEAD)" ] && git commit -m "[no ci] Updated cluster assignments $SHA"
+            git push origin
+          else
+            echo "No new assignments"
+          fi
+
+      - name: Coral - Render templates
+        shell: bash
+        run: coral render ./controlplane ./gitops --verbose
+
+      - name: Coral - Update GitOps repo
+        shell: bash
+        run: coral apply ./controlplane ./gitops --verbose
+
+      - name: Coral - Archive log file
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coral-log-file
+          path: ${{ env.CORAL_LOG_FILE }}
+
+      - name: Create the flux gotk files
+        shell: bash
+        run: bash ./controlplane/scripts/pipeline/createFluxGotk.sh
+
+      - name: Update patches with patchesStrategicMerge
+        working-directory: gitops
+        shell: bash
+        run: |
+          if [ -d clusters ]; then
+            find clusters -type f -iname kustomization.yaml -not -path *flux-system* -exec sed -i -e 's/patches:/patchesStrategicMerge:/g' {} \;
+          fi
+
+      - name: Add SOPS Provider
+        shell: bash
+        run: |
+          gotk_yamls=($(find gitops/clusters -iwholename *flux-system/kustomization.yaml))
+          for gotk_yamls in "${gotk_yamls[@]}"
+          do
+            cp controlplane/scripts/templates/gotk-kustomization.yaml "$gotk_yamls"
+          done
+
+      - name: Update GitOps with SOPS Encrypted Secrets
+        shell: bash
+        run: |
+          ./controlplane/scripts/pipeline/zarfGetApps.sh
+          ./controlplane/scripts/pipeline/populateSecrets.sh
+          ./controlplane/scripts/pipeline/encryptSecrets.sh
+          cd gitops
+          if [ -n "$(git status --porcelain)" ]; then
+            git pull
+            git add .
+            git commit -m "Update from control plane commit $SHA"
+            git push origin main
+          else
+            echo "No changes made to cluster gitops repo"
+          fi
+          cd ..
+
+      - name: Process Zarf Packages with SS Encrypted Secrets
+        shell: bash
+        run: |
+          ./controlplane/scripts/pipeline/encryptSecrets.sh ss
+          ./controlplane/scripts/pipeline/zarfPackageUpload.sh
+          cd controlplane
+          if [ -n "$(git status --porcelain)" ]; then
+            git pull
+            git add zarf
+            git commit -m "[no ci] Adds Zarf Sealed Secrets $SHA"
+            git push origin
+          fi
+          cd ..
+
+      - name: Bootstrap Flux
+        working-directory: controlplane
+        shell: bash
+        run: bash ./scripts/pipeline/fluxBootStrap.sh --github

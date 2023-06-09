@@ -1,0 +1,1761 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-app-netobs-stats
+  namespace: infrastructure
+  labels:
+    grafana_dashboard: "1"
+data:
+  grafana-dashboard-netobs-stats.json: |-
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": 39,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "fillOpacity": 70,
+                "lineWidth": 1,
+                "spanNulls": false
+              },
+              "mappings": [],
+              "noValue": "-",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "id": 30,
+          "options": {
+            "alignValue": "center",
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "mergeValues": false,
+            "rowHeight": 0.9,
+            "showValue": "auto",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nSELECT Collector as metric, $__timeGroup(Timestamp, $__interval, NULL) as 'time', COUNT_BIG(*) as value \r\nFROM PacketsView \r\nWHERE (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector)) \r\nGROUP BY $__timeGroup(Timestamp, $__interval, NULL), Collector\r\nORDER BY time\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Data Availability",
+          "type": "state-timeline"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "mssql",
+            "uid": "P05FF502F22DAC887"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 9
+          },
+          "id": 11,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "P05FF502F22DAC887"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Overview",
+          "type": "row"
+        },
+        {
+          "datasource": {},
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 0,
+            "y": 10
+          },
+          "id": 13,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "0HqQ2m0Vk"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect count_big(*) as 'Number of packets' from PacketsView where (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Number of Packets",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "decbytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 3,
+            "y": 10
+          },
+          "id": 25,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect sum(cast(IpPacketSize as BIGINT)) as 'Amount of data transfered' from PacketsView where (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Data Transferred",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "left",
+                "displayMode": "gradient-gauge",
+                "filterable": false,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Protocol Type"
+                },
+                "properties": [
+                  {
+                    "id": "custom.displayMode",
+                    "value": "color-text"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 4,
+            "x": 6,
+            "y": 10
+          },
+          "id": 17,
+          "options": {
+            "footer": {
+              "fields": [],
+              "reducer": [
+                "sum"
+              ],
+              "show": true
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect top 3 t.ProtocolType as 'Protocol Type', count_big(*) as 'Packet count'\r\nfrom PacketsView p\r\nleft join ProtocolTypes t on p.Protocol = t.ProtocolTypeID\r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by t.ProtocolType\r\norder by 2 desc\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Protocols Used",
+          "transparent": true,
+          "type": "table"
+        },
+        {
+          "datasource": {},
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 18,
+            "y": 10
+          },
+          "id": 23,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "0HqQ2m0Vk"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect count(distinct SourceIP) as 'Number of distinct source IPs' from PacketsView where (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Source IPs",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 21,
+            "y": 10
+          },
+          "id": 22,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect count(distinct DestinationIP) as 'Number of distinct destination IPs' from PacketsView where (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Destination IPs",
+          "transparent": true,
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "mssql",
+            "uid": "P05FF502F22DAC887"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 16
+          },
+          "id": 28,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "P05FF502F22DAC887"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Top 3 Active Ports",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "left",
+                "displayMode": "gradient-gauge",
+                "filterable": false,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Source Port"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "string"
+                  },
+                  {
+                    "id": "custom.displayMode",
+                    "value": "color-text"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 12,
+            "x": 0,
+            "y": 17
+          },
+          "id": 24,
+          "options": {
+            "footer": {
+              "enablePagination": false,
+              "fields": [],
+              "reducer": [
+                "sum"
+              ],
+              "show": true
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect top(3) cast(SourcePort as VARCHAR(5)) as 'Source Port', convert(decimal(19,2),(sum(cast(IpPacketSize as BIGINT)) *1.0) / power(2,20)) as MB from PacketsView\r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by SourcePort\r\norder by MB desc\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "green",
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "left",
+                "displayMode": "gradient-gauge",
+                "filterable": false,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Destination Port"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "string"
+                  },
+                  {
+                    "id": "custom.displayMode",
+                    "value": "color-text"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 12,
+            "x": 12,
+            "y": 17
+          },
+          "id": 26,
+          "options": {
+            "footer": {
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": true
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect top(3) cast(DestinationPort as VARCHAR(5)) as 'Destination Port', convert(decimal(19,2),(sum(cast(IpPacketSize as BIGINT)) *1.0) / power(2,20)) as MB from PacketsView\r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by DestinationPort\r\norder by MB desc\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "mssql",
+            "uid": "P05FF502F22DAC887"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 22
+          },
+          "id": 5,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "P05FF502F22DAC887"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Packet Counts",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Packet Count",
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "fillOpacity": 80,
+                "gradientMode": "hue",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "metric"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Data Collector"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "value"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Packet Count"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 11,
+            "x": 0,
+            "y": 23
+          },
+          "id": 2,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.95,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "vertical",
+            "showValue": "auto",
+            "stacking": "none",
+            "text": {},
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "8.5.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nSELECT\r\n\t Collector as metric,\r\n\t count_big(*) as value\r\n\tFROM\r\n\t PacketsView\r\n\tWHERE\r\n\t (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\n\tGROUP BY\r\n\t Collector\r\n\tORDER BY\r\n\t Value DESC\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Packet Count by Data Collector",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "light-blue",
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Packet Count",
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "fillOpacity": 75,
+                "gradientMode": "hue",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 2,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "destinationip"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Destination IP"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 13,
+            "x": 11,
+            "y": 23
+          },
+          "id": 3,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": true
+            },
+            "orientation": "vertical",
+            "showValue": "always",
+            "stacking": "normal",
+            "text": {},
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xField": "DestinationIP",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.0.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nDECLARE \r\n @columns NVARCHAR(MAX) = '', \r\n @sql NVARCHAR(MAX) = '';\r\n\r\n-- Select the source ips to pivot to columns\r\nSELECT \r\n @columns+=QUOTENAME(SourceIP) + ','\r\nFROM (\r\n\tSELECT DISTINCT SourceIP\r\n\tFROM PacketsView\r\n\tWHERE (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\n) sips\r\nORDER BY SourceIP\r\n\r\n-- Remove the last comma\r\nSET @columns = LEFT(@columns, LEN(@columns) - 1);\r\n\r\n-- Construct dynamic SQL\r\nSET @sql =\"\r\nSET QUOTED_IDENTIFIER OFF;\r\nSELECT * FROM \r\n(\r\n SELECT \r\n SourceIP, \r\n DestinationIP\r\n FROM \r\n PacketsView p\r\n WHERE (\"\"\"+\"$julianday\"+\"\"\" = \"\"'-1'\"\" OR julianDay IN ($julianday)) AND (\"\"\"+\"$collector\"+\"\"\" = \"\"''\"\" OR Collector IN ($collector))\r\n) t \r\nPIVOT(\r\n COUNT_BIG(SourceIP)\r\n FOR SourceIP IN (\"+ @columns +\")\r\n) AS pivot_table\r\n\r\nORDER BY CAST(PARSENAME([DestinationIP], 4) AS INT),\r\n CAST(PARSENAME([DestinationIP], 3) AS INT),\r\n CAST(PARSENAME([DestinationIP], 2) AS INT),\r\n CAST(PARSENAME([DestinationIP], 1) AS INT);\";\r\n\r\n-- Execute the dynamic SQL\r\nEXECUTE sp_executesql @sql;\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Packet Count from Source to Destination IP",
+          "transformations": [],
+          "type": "barchart"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "mssql",
+            "uid": "P05FF502F22DAC887"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 36
+          },
+          "id": 7,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "P05FF502F22DAC887"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Traffic Load",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Traffic Load",
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "decbytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "value"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Traffic load"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 11,
+            "x": 0,
+            "y": 37
+          },
+          "id": 18,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.95,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "vertical",
+            "showValue": "always",
+            "stacking": "none",
+            "text": {},
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "8.5.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect sum(cast(IpPacketSize as BIGINT)) as value, Collector from PacketsView\r\n\tWHERE\r\n\t (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\n\tGROUP BY\r\n\t Collector\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Traffic Load by Collector",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Traffic Load",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 4,
+                "scaleDistribution": {
+                  "log": 2,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 13,
+            "x": 11,
+            "y": 37
+          },
+          "id": 19,
+          "interval": "1m",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Total",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "8.5.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect t.ProtocolType as metric, sum(cast(IpPacketSize as BIGINT)) as value, $__timeGroup(Timestamp, $__interval) as time\r\nfrom PacketsView p\r\nleft join ProtocolTypes t on p.Protocol = t.ProtocolTypeID\r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by $__timeGroup(Timestamp, $__interval), t.ProtocolType\r\norder by time\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Traffic Load by Protocol over Time",
+          "transformations": [],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Traffic Load",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 4,
+                "scaleDistribution": {
+                  "log": 2,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 18,
+            "w": 24,
+            "x": 0,
+            "y": 48
+          },
+          "id": 9,
+          "options": {
+            "legend": {
+              "calcs": [
+                "sum"
+              ],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Total",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect SourceIP as metric, sum(cast(IpPacketSize as BIGINT)) as value, $__timeGroup(Timestamp, $__interval) as time\r\nfrom PacketsView \r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by $__timeGroup(Timestamp, $__interval), SourceIP\r\norder by 3\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Traffic Load by Source IP over Time",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Traffic Load",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 4,
+                "scaleDistribution": {
+                  "log": 2,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 19,
+            "w": 24,
+            "x": 0,
+            "y": 66
+          },
+          "id": 20,
+          "options": {
+            "legend": {
+              "calcs": [
+                "sum"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Total",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nselect DestinationIP as metric, sum(cast(IpPacketSize as BIGINT)) as value, $__timeGroup(Timestamp, $__interval) as time\r\nfrom PacketsView \r\nwhere (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\ngroup by $__timeGroup(Timestamp, $__interval), DestinationIP\r\norder by 3\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Traffic Load by Destination IP over Time",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "mssql",
+            "uid": "PA50A703777F6AD9A"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Traffic Load",
+                "axisPlacement": "auto",
+                "axisSoftMin": 0,
+                "fillOpacity": 80,
+                "gradientMode": "hue",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 2,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue"
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "DestinationIP"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Destination IP"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 19,
+            "w": 24,
+            "x": 0,
+            "y": 85
+          },
+          "id": 21,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": true
+            },
+            "orientation": "vertical",
+            "showValue": "auto",
+            "stacking": "normal",
+            "text": {},
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xField": "DestinationIP",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "mssql",
+                "uid": "PA50A703777F6AD9A"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SET QUOTED_IDENTIFIER OFF;\r\nDECLARE \r\n @columns NVARCHAR(MAX) = '', \r\n @sql NVARCHAR(MAX) = '';\r\n\r\n-- Select the source ips to pivot to columns\r\nSELECT \r\n @columns+=QUOTENAME(SourceIP) + ','\r\nFROM (\r\n\tSELECT DISTINCT SourceIP\r\n\tFROM PacketsView\r\n\tWHERE (\"$julianday\" = \"'-1'\" OR julianDay IN ($julianday)) AND (\"$collector\" = \"''\" OR Collector IN ($collector))\r\n) sips\r\nORDER BY SourceIP\r\n\r\n-- Remove the last comma\r\nSET @columns = LEFT(@columns, LEN(@columns) - 1);\r\n\r\n-- Construct dynamic SQL\r\nSET @sql =\"\r\nSET QUOTED_IDENTIFIER OFF;\r\nSELECT * FROM \r\n(\r\n SELECT \r\n SourceIP, \r\n DestinationIP,\r\n CAST(IpPacketSize AS BIGINT) AS BigIpPacketSize\r\n FROM \r\n PacketsView p\r\n WHERE (\"\"\"+\"$julianday\"+\"\"\" = \"\"'-1'\"\" OR julianDay IN ($julianday)) AND (\"\"\"+\"$collector\"+\"\"\" = \"\"''\"\" OR Collector IN ($collector))\r\n) t \r\nPIVOT(\r\n SUM(BigIpPacketSize)\r\n FOR SourceIP IN (\"+ @columns +\")\r\n) AS pivot_table\r\n\r\nORDER BY CAST(PARSENAME([DestinationIP], 4) AS INT),\r\n CAST(PARSENAME([DestinationIP], 3) AS INT),\r\n CAST(PARSENAME([DestinationIP], 2) AS INT),\r\n CAST(PARSENAME([DestinationIP], 1) AS INT);\";\r\n\r\n-- Execute the dynamic SQL\r\nEXECUTE sp_executesql @sql;\r\nSET QUOTED_IDENTIFIER ON;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Traffic Load from Source to Destination IP",
+          "type": "barchart"
+        }
+      ],
+      "refresh": false,
+      "schemaVersion": 37,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": [
+          {
+            "allValue": "''",
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": {
+              "type": "mssql",
+              "uid": "PA50A703777F6AD9A"
+            },
+            "definition": "select distinct Collector from PacketsView",
+            "description": "Data Collector",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Collector",
+            "multi": true,
+            "name": "collector",
+            "options": [],
+            "query": "select distinct Collector from PacketsView",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          },
+          {
+            "allValue": "'-1'",
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": {
+              "type": "mssql",
+              "uid": "PA50A703777F6AD9A"
+            },
+            "definition": "select distinct julianDay from PacketsView",
+            "description": "",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Julian day",
+            "multi": true,
+            "name": "julianday",
+            "options": [],
+            "query": "select distinct julianDay from PacketsView",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "2012-03-29T22:05:00.000Z",
+        "to": "2012-03-29T22:06:00.000Z"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Network Observability",
+      "uid": "sG-n1vq7k",
+      "version": 1,
+      "weekStart": ""
+    }

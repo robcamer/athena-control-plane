@@ -1,0 +1,10 @@
+---
+# Source: temp/templates/values.yaml
+elasticsearch:
+  hosts:
+  - elasticsearch.infrastructure.svc.cluster.local
+  port: 9200
+image:
+  registry: docker.io
+  repository: bitnami/kibana
+  tag: 8.4.3-debian-11-r1

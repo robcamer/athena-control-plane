@@ -1,0 +1,31 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: rabbitmq
+  description: "Deploys the base rabbitmq helm chart"
+components:
+  - name: rabbitmq-secrets
+    required: true
+    manifests: 
+      - name: rabbitmq-secrets
+        namespace: infrastructure
+        files:       
+          - rabbitmq-secrets.enc.yaml
+  - name: rabbitmq
+    required: true
+    manifests: 
+      - name: rabbitmq-deployments
+        namespace: infrastructure
+        files:
+          - dashboard.yaml
+    charts:
+      - name: rabbitmq
+        releaseName: rabbitmq
+        url: https://charts.bitnami.com/bitnami
+        version: 11.10.0
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - docker.io/bitnami/rabbitmq:3.11.9-debian-11-r1

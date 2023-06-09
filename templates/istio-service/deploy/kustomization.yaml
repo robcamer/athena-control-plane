@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - azurefile-csi-pv.yaml
+  - azurefile-csi-pvc.yaml
+  {{^canary}}
+  - namespace.yaml
+  - service.yaml
+  {{/canary}}
+  - deployment.yaml
+  {{#config}}
+  - config.yaml
+  {{/config}}
+  {{#imagePullSecret}}
+  - {{name}}-image-pull-secret.enc.yaml
+  {{/imagePullSecret}}
+  - {{name}}-secrets.enc.yaml
+  {{#canary}}
+  - destination-rule.yaml
+  - virtual-service.yaml
+  {{/canary}}

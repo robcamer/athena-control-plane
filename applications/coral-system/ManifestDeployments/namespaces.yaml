@@ -1,0 +1,9 @@
+kind: ManifestDeployment
+metadata:
+  name: namespaces
+spec:
+  workspace: coral-system
+  manifests: namespaces
+  targets:
+    all:
+      clusters: all

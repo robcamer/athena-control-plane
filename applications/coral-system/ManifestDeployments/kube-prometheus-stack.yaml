@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: kube-prometheus-stack
+spec:
+  workspace: coral-system
+  manifests: kube-prometheus-stack
+  targets:
+    all:
+      clusters: all
+      patches:
+        - kube-prom-stack-config.yaml

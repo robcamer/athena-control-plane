@@ -1,0 +1,19 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: istio-istiod
+  description: "Deploys the base istio-istiod helm chart"
+components:
+  - name: istio-istiod
+    required: true
+    charts:
+      - name: istiod
+        releaseName: istio-istiod
+        url: https://istio-release.storage.googleapis.com/charts
+        version: 1.15.3
+        namespace: infrastructure
+        valuesFiles:
+          - values.yaml
+    images:
+      - docker.io/istio/pilot:1.15.3

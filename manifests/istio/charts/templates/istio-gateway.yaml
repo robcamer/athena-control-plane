@@ -1,0 +1,85 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: istio-gateway
+  namespace: infrastructure
+spec:
+  selector:
+    app: istio-gateway
+  servers:
+  - port:
+      number: 8080
+      name: grafana
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-cert
+    hosts:
+    - "*"
+  - port:
+      number: 5601
+      name: kibana
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-cert
+    hosts:
+    - "*"
+  - port:
+      number: 20001
+      name: kiali
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-cert
+    hosts:
+    - "*"
+  - port:
+      number: 9411
+      name: zipkin
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-cert
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: istio-gateway
+  namespace: infrastructure
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - istio-gateway
+  http:
+  - match:
+    - port: 8080
+    route:
+    - destination:
+        host: "kube-prometheus-stack-grafana.infrastructure.svc.cluster.local"
+        port:
+          number: 80
+  - match:
+    - port: 5601
+    route:
+    - destination:
+        host: "kibana.infrastructure.svc.cluster.local"
+        port:
+          number: 5601
+  - match:
+    - port: 20001
+    route:
+    - destination:
+        host: "kiali.infrastructure.svc.cluster.local"
+        port:
+          number: 20001
+  - match:
+    - port: 9411
+    route:
+    - destination:
+        host: "zipkin.infrastructure.svc.cluster.local"
+        port:
+          number: 9411

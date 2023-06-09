@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{versionIndependentName}}
+  namespace: {{coral.workspace}}-{{coral.app}}
+  labels:
+    app: {{versionIndependentName}}
+    service: {{versionIndependentName}}
+spec:
+  selector:
+    app: {{versionIndependentName}}
+  ports:
+    - protocol: TCP
+      port: {{port}}
+      # targetPort: {{port}}

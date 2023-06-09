@@ -1,0 +1,39 @@
+---
+# Source: temp/templates/values.yaml
+commonLabels:
+  prometheus: add-prometheus-target
+hostNetwork: true
+prometheusOperator:
+  admissionWebhooks:
+    patch:
+      podAnnotations:
+        sidecar.istio.io/inject: "false"
+grafana:
+  extraLabels:
+    prometheus: add-prometheus-target
+  envFromSecrets:
+  - name: azure-sql-edge-secrets
+    optional: true
+  sidecar:
+    dashboards:
+      enabled: true
+      provider:
+        allowUiUpdates: true
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      searchNamespace: ALL
+      isDefaultDatasource: false
+kube-state-metrics:
+  prometheus:
+    monitor:
+      additionalLabels:
+        prometheus: add-prometheus-target
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+prometheus-node-exporter:
+  prometheus:
+    monitor:
+      additionalLabels:
+        prometheus: add-prometheus-target

@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  ca-cert.pem: <<<istio-ca-cert>>>
+  ca-key.pem: <<<istio-ca-key>>>
+  cert-chain.pem: <<<istio-cert-chain>>>
+  root-cert.pem: <<<istio-root-cert>>>
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: cacerts
+  namespace: infrastructure

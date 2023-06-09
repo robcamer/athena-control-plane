@@ -1,0 +1,14 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{coral.app}}
+  namespace: {{coral.workspace}}-{{coral.app}}
+spec:
+  host: {{versionIndependentName}}
+  subsets:
+  - name: "{{currentVersion}}"
+    labels:
+      version: "{{currentVersion}}"
+  - name: "{{version}}"
+    labels:
+      version: "{{version}}"

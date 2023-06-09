@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: kiali
+spec:
+  workspace: coral-system
+  manifests: kiali
+  targets:
+    all:
+      clusters: all
+      patches:
+        - kiali-config.yaml

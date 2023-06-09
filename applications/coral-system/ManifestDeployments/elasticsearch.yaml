@@ -1,0 +1,11 @@
+kind: ManifestDeployment
+metadata:
+  name: elasticsearch
+spec:
+  workspace: coral-system
+  manifests: elasticsearch
+  targets:
+    all:
+      clusters: all
+      patches:
+        - elasticsearch-config.yaml

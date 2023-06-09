@@ -1,0 +1,14 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.sqldb.fullnameOverride }}-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sqldb.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.pvc.storageClass }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.pvc.storageSize }}

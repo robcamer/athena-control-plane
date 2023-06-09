@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{name}}-deployment
+  namespace: {{coral.workspace}}-{{coral.app}}
+  labels:
+    app: {{versionIndependentName}}
+    version: "{{version}}"
+  # {{#coral.labels}}
+  #   {{key}}: {{value}}
+  # {{/coral.labels}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{versionIndependentName}}
+      version: "{{version}}"
+  template:
+    metadata:
+      labels:
+        app: {{versionIndependentName}}
+        version: "{{version}}"
+        # {{#coral.labels}}
+        # {{key}}: {{value}}
+        # {{/coral.labels}}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "{{port}}"
+    spec:
+      volumes:
+      - name: datastore
+        persistentVolumeClaim:
+          claimName: {{name}}-pvc
+      {{#imagePullSecret}}
+      imagePullSecrets:
+        - name: {{name}}-image-pull-secret
+      {{/imagePullSecret}}
+      containers:
+      - name: {{coral.app}}
+        envFrom:
+        - configMapRef:
+            name: {{name}}-config
+            optional: true
+        - secretRef:
+            name: {{name}}-secrets
+            optional: true
+        image: {{image}}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{port}}
+        volumeMounts:
+        - name: datastore
+          mountPath: /var
+        resources:
+          requests:
+            {{#requestsMemory}}
+            memory: {{requestsMemory}}
+            {{/requestsMemory}}
+            {{^requestsMemory}}
+            memory: "256Mi"
+            {{/requestsMemory}}
+            {{#requestsCPU}}
+            cpu: {{requestsCPU}}
+            {{/requestsCPU}}
+            {{^requestsCPU}}
+            cpu: "125m"
+            {{/requestsCPU}}
+          limits:
+            {{#limitsMemory}}
+            memory: {{limitsMemory}}
+            {{/limitsMemory}}
+            {{^limitsMemory}}
+            memory: "1Gi"
+            {{/limitsMemory}}
+            {{#limitsCPU}}
+            cpu: {{limitsCPU}}
+            {{/limitsCPU}}
+            {{^limitsCPU}}
+            cpu: "1000m"
+            {{/limitsCPU}}
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthcheck
+        #     port: {{port}}
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 10

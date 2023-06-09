@@ -1,0 +1,50 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: fluentbit
+  namespace: infrastructure
+spec:
+  values:
+    env: 
+      - name: "LOG_ANALYTICS_WORKSPACE_ID"
+        valueFrom:
+          secretKeyRef:
+            key:  workspace_id
+            name: azure-log-analytics
+      - name: "LOG_ANALYTICS_KEY"
+        valueFrom:
+          secretKeyRef:
+            key:  key
+            name: azure-log-analytics
+    service:
+      type: ClusterIP
+      port: 2020
+      labels: {}
+      annotations: 
+        prometheus.io/path: "/api/v1/metrics/prometheus"
+        prometheus.io/port: "2020"
+        prometheus.io/scrape: "true" 
+    config:
+      outputs: |
+        [OUTPUT]
+            Name es
+            Match kube.*
+            Host elasticsearch.infrastructure.svc.cluster.local
+            Logstash_Format On
+            Retry_Limit False
+            Suppress_Type_Name On
+            Replace_Dots On
+            net.keepalive off
+            Trace_Error On
+
+        [OUTPUT]
+            Name es
+            Match host.*
+            Host elasticsearch.infrastructure.svc.cluster.local
+            Logstash_Format On
+            Logstash_Prefix node
+            Retry_Limit False
+            Suppress_Type_Name On
+            Replace_Dots On
+            net.keepalive off
+            Trace_Error On

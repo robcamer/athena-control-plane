@@ -1,0 +1,19 @@
+---
+# Source: temp/templates/values.yaml
+global:
+  istioNamespace: 'infrastructure'
+service:
+  ports:
+  - name: status-port
+    port: 15021
+    protocol: TCP
+    targetPort: 15021
+  - name: grafana
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: kibana
+    port: 5601
+    protocol: TCP
+    targetPort: 5601
+  type: LoadBalancer

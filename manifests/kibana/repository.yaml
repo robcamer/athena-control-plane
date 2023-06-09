@@ -1,0 +1,8 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta1
+kind: HelmRepository
+metadata:
+  name: kibana
+  namespace: infrastructure
+spec:
+  url: https://charts.bitnami.com/bitnami
+  interval: 10m

@@ -1,0 +1,13 @@
+kind: ManifestDeployment
+metadata:
+  name: istio
+spec:
+  workspace: coral-system
+  manifests: istio
+  targets:
+    all:
+      clusters: all
+      patches:
+        - istio-base-config.yaml
+        - istiod-config.yaml
+        - istio-gateway-config.yaml

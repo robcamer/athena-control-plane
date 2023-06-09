@@ -1,0 +1,28 @@
+---
+# Source: temp/templates/zarf.yaml
+kind: ZarfPackageConfig
+metadata:
+  name: azure-sql-edge
+  description: "Deploys the base azure-sql-edge helm chart"
+components:
+  - name: azure-sql-edge-secrets
+    required: true
+    manifests: 
+      - name: azure-sql-edge-secrets
+        namespace: infrastructure
+        files:       
+          - azure-sql-edge-secrets.enc.yaml
+  - name: azure-sql-edge
+    required: true
+    manifests: 
+      - name: azure-sql-edge-deployments
+        namespace: infrastructure
+        files:
+          - dashboard.yaml
+    charts:
+      - name: azure-sql-edge
+        localPath: charts
+        version: 0.1.0
+        namespace: infrastructure
+    images:
+      - mcr.microsoft.com/azure-sql-edge:1.0.6
