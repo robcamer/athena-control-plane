@@ -1,0 +1,6 @@
+inventory:
+- source: DirectOwners
+  items:
+  - id: robcamer@microsoft.com
+  - id: mabentley@microsoft.com
+  isProduction: false
